@@ -1,0 +1,12 @@
+# Variables de entorno — nunca subir al repositorio
+.env
+
+# Dependencias — se reinstalan con npm install
+node_modules/
+
+# Logs
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
