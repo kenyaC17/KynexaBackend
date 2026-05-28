@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════
 const express      = require('express');
 const cors         = require('cors');
+const helmet       = require('helmet');
 const rateLimit    = require('express-rate-limit');
 
 // Importa las rutas
@@ -23,14 +24,15 @@ const generalLimiter = rateLimit({
 
 const orderLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 horas
-  max:      10,              // máximo 10 pedidos por IP por dia
-  message:  { error: 'Límite de pedidos alcanzado, intentá de nuevo en 1 hora' },
+  max:      10,                   // máximo 10 pedidos por IP por día
+  message:  { error: 'Límite de pedidos alcanzado, intentá de nuevo mañana' },
   standardHeaders: true,
   legacyHeaders:   false,
 });
 
 // ── Middlewares (deben ir ANTES de las rutas)
-app.use(generalLimiter);
+app.use(helmet());        // headers de seguridad HTTP
+app.use(generalLimiter);  // rate limiting general
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   methods: ['GET', 'POST'],
