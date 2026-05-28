@@ -34,12 +34,25 @@ const orderLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
+// ── Orígenes permitidos
+// En producción: kynexa.studio
+// En desarrollo: localhost:5173
+const allowedOrigins = [
+  'https://kynexa.studio',
+  'http://localhost:5173',
+];
+
 // ── Middlewares (deben ir ANTES de las rutas)
 app.use(helmet());        // headers de seguridad HTTP
 app.use(generalLimiter);  // rate limiting general
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  methods: ['GET', 'POST'],
+  origin: (origin, callback) => {
+    // Permitir requests sin origin (Postman, Railway health checks)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('No permitido por CORS'));
+  },
+  methods:        ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json({ limit: '50mb' }));
