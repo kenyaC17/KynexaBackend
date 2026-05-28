@@ -75,7 +75,14 @@ async function webhookHandler(req, res) {
     const payment = new Payment(client);
 
     // Obtiene los detalles del pago desde MP
-    const paymentData = await payment.get({ id: data.id });
+    // Si el ID no existe (ej: simulación del panel), ignoramos sin error
+    let paymentData;
+    try {
+      paymentData = await payment.get({ id: data.id });
+    } catch (mpError) {
+      console.log('[webhook] Pago no encontrado en MP, ignorando:', data.id);
+      return res.status(200).json({ received: true });
+    }
 
     console.log('[webhook] paymentData status:', paymentData.status);
 
