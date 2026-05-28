@@ -39,12 +39,13 @@ async function createPaymentPreference({ orderId, plan, price, customerEmail, cu
         failure: `${process.env.FRONTEND_URL}/builder.html?status=failure&order=${orderId}`,
         pending: `${process.env.FRONTEND_URL}/builder.html?status=pending&order=${orderId}`,
       },
-      auto_return:        'approved', // ← redirige automáticamente al aprobar
-      external_reference: orderId,   // ← ID del pedido para identificarlo en el webhook
+      auto_return:        'approved',  // ← redirige automáticamente al aprobar
+      external_reference: orderId,    // ← ID del pedido para identificarlo en el webhook
       notification_url:   `${process.env.BACKEND_URL}/api/payments/webhook`, // ← webhook
     }
   });
 
+  // En producción usar init_point — sandbox_init_point es solo para pruebas
   return result;
 }
 
@@ -54,7 +55,7 @@ async function savePayment({ orderId, mpPaymentId, amount, status }) {
   const { data, error } = await supabase
     .from('payments')
     .insert([{
-      order_id:     orderId,
+      order_id:      orderId,
       mp_payment_id: mpPaymentId, // ← ID del pago de Mercado Pago
       amount,
       status

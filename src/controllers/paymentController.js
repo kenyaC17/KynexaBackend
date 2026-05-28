@@ -78,9 +78,10 @@ async function createPaymentHandler(req, res) {
     });
 
     // Devuelve la URL de pago al frontend
+    // init_point para producción — sandbox_init_point solo para pruebas
     return res.status(200).json({
       success:     true,
-      checkoutUrl: preference.sandbox_init_point, // ← en producción usar init_point
+      checkoutUrl: preference.init_point,
     });
 
   } catch (error) {
