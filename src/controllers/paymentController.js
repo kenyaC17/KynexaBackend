@@ -51,11 +51,20 @@ async function createPaymentHandler(req, res) {
 // MP llama a este endpoint cuando confirma un pago
 // Solo aquí se envía el email de confirmación
 async function webhookHandler(req, res) {
+  console.log('[webhook] body:', JSON.stringify(req.body));
   try {
-    const { type, data } = req.body;
+    // MP puede mandar 'type' o 'action' según la versión
+    const type = req.body.type || req.body.action;
+    const data = req.body.data;
+
+    console.log('[webhook] type:', type, '| data:', JSON.stringify(data));
 
     // Solo procesamos notificaciones de pagos
-    if (type !== 'payment') {
+    if (type !== 'payment' && type !== 'payment.created' && type !== 'payment.updated') {
+      return res.status(200).json({ received: true });
+    }
+
+    if (!data?.id) {
       return res.status(200).json({ received: true });
     }
 
@@ -67,6 +76,8 @@ async function webhookHandler(req, res) {
 
     // Obtiene los detalles del pago desde MP
     const paymentData = await payment.get({ id: data.id });
+
+    console.log('[webhook] paymentData status:', paymentData.status);
 
     // Solo procesamos pagos aprobados
     if (paymentData.status !== 'approved') {
