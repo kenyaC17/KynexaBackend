@@ -54,7 +54,7 @@ app.use(cors({
     callback(new Error('No permitido por CORS'));
   },
   methods:        ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Token'],
 }));
 app.use(express.json({ limit: '50mb' }));
 

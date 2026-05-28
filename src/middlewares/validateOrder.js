@@ -2,10 +2,17 @@
 // KYNEXA BACKEND — src/middlewares/validateOrder.js
 // Valida los datos del pedido antes de
 // que lleguen al controller.
-// Si algo falta devuelve error 400.
+// Si algo falta devuelve error 400/403.
 // ═══════════════════════════════════════
 
 function validateOrder(req, res, next) {
+  // Valida token de sesión — protege contra bots y requests automatizados
+  // El token es generado por el frontend al iniciar el builder
+  const token = req.headers['x-session-token'];
+  if (!token || token.length !== 64) {
+    return res.status(403).json({ error: 'Token de sesión inválido' });
+  }
+
   const {
     userData,
     plan,
@@ -32,7 +39,7 @@ function validateOrder(req, res, next) {
     return res.status(400).json({ error: 'Plan inválido' });
   }
 
-  // Valida precio
+  // Valida precio — protege contra manipulación del precio en el frontend
   const validPrices = { basico: 115, medio: 173, pro: 245 };
   if (!planPrice || planPrice !== validPrices[plan]) {
     return res.status(400).json({ error: 'Precio inválido' });
