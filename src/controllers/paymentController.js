@@ -12,6 +12,7 @@ const { sendConfirmationEmail }                  = require('../services/emailSer
 // Recibe el orderId y crea la preferencia de pago en MP
 // Devuelve la URL de pago al frontend
 async function createPaymentHandler(req, res) {
+  console.log('[createPaymentHandler] body:', JSON.stringify(req.body));
   try {
     const { orderId } = req.body;
 
