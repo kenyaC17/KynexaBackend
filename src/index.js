@@ -28,18 +28,18 @@ const generalLimiter = rateLimit({
 
 const orderLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 horas
-  max:      50,                   // máximo 50 pedidos por IP por día — reducir a 10 en producción
+  max:      10,                   // máximo 10 pedidos por IP por día
   message:  { error: 'Límite de pedidos alcanzado, intentá de nuevo mañana' },
   standardHeaders: true,
   legacyHeaders:   false,
 });
 
 // ── Orígenes permitidos
-// En producción: kynexa.studio y kynexa-front.vercel.app
+// En producción: kynexa.studio
 // En desarrollo: localhost:5173
 const allowedOrigins = [
   'https://kynexa.studio',
-  'https://kynexa-front.vercel.app',
+  'https://www.kynexa.studio',
   'http://localhost:5173',
 ];
 
@@ -51,8 +51,6 @@ app.use(cors({
     // Permitir requests sin origin (Postman, Railway health checks)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // Permitir previews de Vercel durante desarrollo
-    if (origin.endsWith('.vercel.app')) return callback(null, true);
     callback(new Error('No permitido por CORS'));
   },
   methods:        ['GET', 'POST'],
