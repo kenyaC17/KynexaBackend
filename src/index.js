@@ -31,24 +31,6 @@ app.get('/health', (req, res) => {
 app.use('/api/orders',   orderRoutes);
 app.use('/api/payments', paymentRoutes);
 
-// ── TODO: ELIMINAR ANTES DE PRODUCCIÓN
-// Ruta temporal para probar el envío de emails con Resend
-app.post('/test/email', async (req, res) => {
-  const { sendConfirmationEmail } = require('./services/emailService');
-  try {
-    await sendConfirmationEmail({
-      customerName:  'Kenya Contreras',
-      customerEmail: req.body.email,
-      plan:          'medio',
-      price:         173,
-      orderId:       'test-order-123'
-    });
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
