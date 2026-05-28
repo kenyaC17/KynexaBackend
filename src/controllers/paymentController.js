@@ -4,9 +4,51 @@
 // y el webhook de Mercado Pago.
 // ═══════════════════════════════════════
 
+const crypto = require('crypto');
+
 const { createPaymentPreference, savePayment } = require('../services/paymentService');
 const { updateOrderStatus, getOrderById }       = require('../services/orderService');
 const { sendConfirmationEmail }                  = require('../services/emailService');
+
+// Valida la firma del webhook de MP
+// Protege contra requests falsos que no vengan de MP
+function validateWebhookSignature(req) {
+  const secret    = process.env.MP_WEBHOOK_SECRET;
+  const signature = req.headers['x-signature'];
+  const requestId = req.headers['x-request-id'];
+
+  // Si no hay secret configurado, salteamos la validación
+  if (!secret) return true;
+
+  // Si no hay firma en el header, rechazamos
+  if (!signature) return false;
+
+  // Extraemos ts y v1 del header x-signature
+  // Formato: ts=123456,v1=abc123...
+  const parts = {};
+  signature.split(',').forEach(part => {
+    const [key, value] = part.split('=');
+    parts[key] = value;
+  });
+
+  if (!parts.ts || !parts.v1) return false;
+
+  // Construimos el string a firmar según la doc de MP
+  const dataId   = req.body?.data?.id || '';
+  const manifest = `id:${dataId};request-id:${requestId};ts:${parts.ts};`;
+
+  // Calculamos el HMAC-SHA256
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(manifest)
+    .digest('hex');
+
+  // Comparamos de forma segura para evitar timing attacks
+  return crypto.timingSafeEqual(
+    Buffer.from(expectedSignature),
+    Buffer.from(parts.v1)
+  );
+}
 
 // POST /api/payments/create
 // Recibe el orderId y crea la preferencia de pago en MP
@@ -52,6 +94,12 @@ async function createPaymentHandler(req, res) {
 // Solo aquí se envía el email de confirmación
 async function webhookHandler(req, res) {
   try {
+    // Valida que el request venga realmente de MP
+    if (!validateWebhookSignature(req)) {
+      console.warn('[webhook] Firma inválida — request rechazado');
+      return res.status(401).json({ error: 'Firma inválida' });
+    }
+
     // MP puede mandar 'type' o 'action' según la versión
     const type = req.body.type || req.body.action;
     const data = req.body.data;
