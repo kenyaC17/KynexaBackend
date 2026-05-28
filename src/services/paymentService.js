@@ -34,14 +34,15 @@ async function createPaymentPreference({ orderId, plan, price, customerEmail, cu
         name:  customerName,
       },
       // URLs de redirección después del pago
-      // auto_return desactivado hasta que el frontend esté listo
+      // Se actualizan cuando el frontend esté desplegado
       back_urls: {
-        success: `${process.env.BACKEND_URL}/health`,
-        failure: `${process.env.BACKEND_URL}/health`,
-        pending: `${process.env.BACKEND_URL}/health`,
+        success: `${process.env.FRONTEND_URL}/builder.html?status=success&order=${orderId}`,
+        failure: `${process.env.FRONTEND_URL}/builder.html?status=failure&order=${orderId}`,
+        pending: `${process.env.FRONTEND_URL}/builder.html?status=pending&order=${orderId}`,
       },
-      external_reference: orderId, // ← ID del pedido para identificarlo en el webhook
-      notification_url: `${process.env.BACKEND_URL}/api/payments/webhook`, // ← webhook
+      auto_return:        'approved', // ← redirige automáticamente al aprobar
+      external_reference: orderId,   // ← ID del pedido para identificarlo en el webhook
+      notification_url:   `${process.env.BACKEND_URL}/api/payments/webhook`, // ← webhook
     }
   });
 
