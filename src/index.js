@@ -12,6 +12,10 @@ const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
+// ── Necesario para Railway y cualquier hosting con proxy inverso
+// Permite que express-rate-limit identifique correctamente las IPs reales
+app.set('trust proxy', 1);
+
 // ── Rate limiting
 // Protege contra spam y abuso de los endpoints
 const generalLimiter = rateLimit({
