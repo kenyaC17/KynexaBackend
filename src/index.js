@@ -10,17 +10,13 @@ const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
-// ── Middlewares
-app.use(express.json({ limit: '50mb' }));
+// ── Middlewares (deben ir ANTES de las rutas)
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-
-// ── Rutas
-app.use('/api/orders',   orderRoutes);
-app.use('/api/payments', paymentRoutes);
+app.use(express.json({ limit: '50mb' }));
 
 // ── Ruta de salud
 app.get('/health', (req, res) => {
@@ -30,6 +26,10 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// ── Rutas (siempre después de los middlewares)
+app.use('/api/orders',   orderRoutes);
+app.use('/api/payments', paymentRoutes);
 
 const PORT = process.env.PORT || 3000;
 
