@@ -34,7 +34,6 @@ async function createPaymentPreference({ orderId, plan, price, customerEmail, cu
         name:  customerName,
       },
       // URLs de redirección después del pago
-      // Se actualizan cuando el frontend esté desplegado
       back_urls: {
         success: `${process.env.FRONTEND_URL}/builder.html?status=success&order=${orderId}`,
         failure: `${process.env.FRONTEND_URL}/builder.html?status=failure&order=${orderId}`,
@@ -55,8 +54,8 @@ async function savePayment({ orderId, mpPaymentId, amount, status }) {
   const { data, error } = await supabase
     .from('payments')
     .insert([{
-      order_id:          orderId,
-      stripe_payment_id: mpPaymentId, // ← reutilizamos la columna para el ID de MP
+      order_id:     orderId,
+      mp_payment_id: mpPaymentId, // ← ID del pago de Mercado Pago
       amount,
       status
     }])
