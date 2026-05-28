@@ -10,6 +10,12 @@ const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
+// ── Debug log — ver qué llega antes del parseo
+app.use((req, res, next) => {
+  console.log('[index] method:', req.method, '| path:', req.path, '| content-type:', req.headers['content-type']);
+  next();
+});
+
 // ── Middlewares (deben ir ANTES de las rutas)
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
