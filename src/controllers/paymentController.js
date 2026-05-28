@@ -50,6 +50,24 @@ function validateWebhookSignature(req) {
   );
 }
 
+// Reintenta una función async hasta maxAttempts veces
+// con espera exponencial entre intentos
+async function withRetry(fn, maxAttempts = 3, delayMs = 1000) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      console.warn(`[retry] Intento ${attempt}/${maxAttempts} fallido: ${err.message}`);
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, delayMs * attempt));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // POST /api/payments/create
 // Recibe el orderId y crea la preferencia de pago en MP
 // Devuelve la URL de pago al frontend
@@ -145,20 +163,20 @@ async function webhookHandler(req, res) {
     });
 
     // Actualiza el estado del pedido a 'paid'
-    const order = await updateOrderStatus(orderId, 'paid');
+    await updateOrderStatus(orderId, 'paid');
 
     // Obtiene los datos del cliente para el email
     const fullOrder = await getOrderById(orderId);
 
-    // ← ÚNICO LUGAR donde se envía el email
-    // Solo cuando MP confirma el pago
-    await sendConfirmationEmail({
+    // Envía el email con retry — 3 intentos con espera exponencial
+    // El pago ya está confirmado aunque el email falle
+    await withRetry(() => sendConfirmationEmail({
       customerName:  fullOrder.customers.name,
       customerEmail: fullOrder.customers.email,
       plan:          fullOrder.plan,
       price:         fullOrder.price,
       orderId:       fullOrder.id,
-    });
+    }));
 
     console.log(`✓ Pago confirmado y email enviado — Orden ${orderId}`);
 
