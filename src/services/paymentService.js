@@ -21,10 +21,6 @@ async function createPaymentPreference({ orderId, plan, price, customerEmail, cu
 
   const PLAN_LABELS = { basico: 'Plan Básico', medio: 'Plan Medio', pro: 'Plan Pro' };
 
-  // URLs de redirección — en producción apuntan al frontend real
-  // En desarrollo apuntan al backend como placeholder
-  const baseUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL;
-
   const result = await preference.create({
     body: {
       items: [{
@@ -38,12 +34,12 @@ async function createPaymentPreference({ orderId, plan, price, customerEmail, cu
         name:  customerName,
       },
       // URLs de redirección después del pago
+      // auto_return desactivado hasta que el frontend esté listo
       back_urls: {
-        success: `${baseUrl}/builder.html?status=success&order=${orderId}`,
-        failure: `${baseUrl}/builder.html?status=failure&order=${orderId}`,
-        pending: `${baseUrl}/builder.html?status=pending&order=${orderId}`,
+        success: `${process.env.BACKEND_URL}/health`,
+        failure: `${process.env.BACKEND_URL}/health`,
+        pending: `${process.env.BACKEND_URL}/health`,
       },
-      auto_return: 'approved', // ← redirige automáticamente al aprobar
       external_reference: orderId, // ← ID del pedido para identificarlo en el webhook
       notification_url: `${process.env.BACKEND_URL}/api/payments/webhook`, // ← webhook
     }
