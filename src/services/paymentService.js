@@ -21,12 +21,16 @@ async function createPaymentPreference({ orderId, plan, price, customerEmail, cu
 
   const PLAN_LABELS = { basico: 'Plan Básico', medio: 'Plan Medio', pro: 'Plan Pro' };
 
+  // URLs de redirección — en producción apuntan al frontend real
+  // En desarrollo apuntan al backend como placeholder
+  const baseUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL;
+
   const result = await preference.create({
     body: {
       items: [{
-        title:      `KYNEXA Studio — ${PLAN_LABELS[plan]}`,
-        quantity:   1,
-        unit_price: price,
+        title:       `KYNEXA Studio — ${PLAN_LABELS[plan]}`,
+        quantity:    1,
+        unit_price:  price,
         currency_id: 'ARS', // ← cambiá a 'USD' si operás en dólares
       }],
       payer: {
@@ -35,9 +39,9 @@ async function createPaymentPreference({ orderId, plan, price, customerEmail, cu
       },
       // URLs de redirección después del pago
       back_urls: {
-        success: `${process.env.FRONTEND_URL}/builder.html?status=success&order=${orderId}`,
-        failure: `${process.env.FRONTEND_URL}/builder.html?status=failure&order=${orderId}`,
-        pending: `${process.env.FRONTEND_URL}/builder.html?status=pending&order=${orderId}`,
+        success: `${baseUrl}/builder.html?status=success&order=${orderId}`,
+        failure: `${baseUrl}/builder.html?status=failure&order=${orderId}`,
+        pending: `${baseUrl}/builder.html?status=pending&order=${orderId}`,
       },
       auto_return: 'approved', // ← redirige automáticamente al aprobar
       external_reference: orderId, // ← ID del pedido para identificarlo en el webhook
