@@ -28,7 +28,7 @@ const generalLimiter = rateLimit({
 
 const orderLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 horas
-  max:      10,                   // máximo 10 pedidos por IP por día
+  max:      50,                   // máximo 10 pedidos por IP por día
   message:  { error: 'Límite de pedidos alcanzado, intentá de nuevo mañana' },
   standardHeaders: true,
   legacyHeaders:   false,
