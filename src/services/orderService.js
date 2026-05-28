@@ -8,8 +8,25 @@ const supabase = require('../db/supabase');
 
 // Crea un nuevo pedido en la BD
 // Recibe el id del cliente y los datos del builder
+// Idempotente — si ya existe un pedido pending del mismo cliente
+// con el mismo plan en los últimos 10 minutos, lo devuelve en lugar de crear uno nuevo
 async function createOrder({ customerId, plan, price, palette, style, fonts }) {
 
+  // Verifica si ya existe un pedido reciente pending para evitar duplicados
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+  const { data: existing } = await supabase
+    .from('orders')
+    .select()
+    .eq('customer_id', customerId)
+    .eq('plan', plan)
+    .eq('status', 'pending')
+    .gte('created_at', tenMinutesAgo)
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  // Si no existe, crea el pedido
   const { data, error } = await supabase
     .from('orders')
     .insert([{
@@ -30,7 +47,7 @@ async function createOrder({ customerId, plan, price, palette, style, fonts }) {
 }
 
 // Actualiza el estado de un pedido
-// Se usa cuando Stripe confirma el pago
+// Se usa cuando MP confirma el pago
 async function updateOrderStatus(orderId, status) {
 
   const { data, error } = await supabase
