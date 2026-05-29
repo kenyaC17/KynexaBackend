@@ -3,6 +3,7 @@
 // Entry point del servidor Express.
 // Configura middlewares de seguridad,
 // rate limiting, CORS y rutas.
+// Inicia el job de limpieza de Storage.
 // ═══════════════════════════════════════
 
 const express   = require('express');
@@ -10,8 +11,9 @@ const cors      = require('cors');
 const helmet    = require('helmet');
 const rateLimit = require('express-rate-limit');
 
-const orderRoutes   = require('./routes/orderRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
+const orderRoutes          = require('./routes/orderRoutes');
+const paymentRoutes        = require('./routes/paymentRoutes');
+const { startCleanupJob }  = require('./jobs/cleanupStorage');
 
 const app = express();
 
@@ -69,8 +71,11 @@ app.use('/api/orders',   orderRoutes);
 app.use('/api/payments', paymentRoutes);
 
 // ── Inicia el servidor solo si este archivo es el entry point
-// Evita iniciar el servidor si se importa en tests o scripts
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT);
+
+  // Inicia el job de limpieza de archivos huérfanos
+  // Se ejecuta al arrancar y luego cada hora
+  startCleanupJob();
 }
