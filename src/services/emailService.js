@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════
 // KYNEXA BACKEND — src/services/emailService.js
 // Envío de emails con Resend.
-// Dos tipos: recovery (pedido registrado) y confirmación (pago aprobado).
+// Dos tipos: recovery (pedido registrado)
+// y confirmación (pago aprobado).
 // ═══════════════════════════════════════
 
 const { Resend } = require('resend');
@@ -9,13 +10,20 @@ const { Resend } = require('resend');
 // Inicializa Resend con el API Key del .env
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const PLAN_LABELS = { basico: 'Básico', medio: 'Medio', pro: 'Pro' };
-
+// ── URL base del frontend — usada en los links de los emails
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://kynexa.studio';
 
+// ── Labels legibles por plan — definidos una sola vez como constante del módulo
+// Evita duplicación entre sendOrderRecoveryEmail y sendConfirmationEmail
+const PLAN_LABELS = {
+  basico: 'Básico',
+  medio:  'Medio',
+  pro:    'Pro',
+};
+
 // ── Email de recovery
-// Se envía cuando el pedido es creado pero el pago no está completo
-// Incluye link directo al checkout para retomar el pago
+// Se envía cuando el pedido es creado pero el pago no está completo.
+// Incluye link directo al builder para retomar el pago.
 async function sendOrderRecoveryEmail({ customerName, customerEmail, plan, price, orderId }) {
 
   const checkoutUrl = `${FRONTEND_URL}/builder.html?resume=${orderId}`;
@@ -56,7 +64,7 @@ async function sendOrderRecoveryEmail({ customerName, customerEmail, plan, price
             <table style="width: 100%; font-size: 14px;">
               <tr>
                 <td style="color: #999; padding: 6px 0;">Plan</td>
-                <td style="text-align: right; font-weight: 600;">${PLAN_LABELS[plan]}</td>
+                <td style="text-align: right; font-weight: 600;">${PLAN_LABELS[plan] ?? plan}</td>
               </tr>
               <tr>
                 <td style="color: #999; padding: 6px 0;">Total</td>
@@ -69,7 +77,6 @@ async function sendOrderRecoveryEmail({ customerName, customerEmail, plan, price
             </table>
           </div>
 
-          <!-- Botón de pago -->
           <div style="text-align: center; margin-bottom: 32px;">
             <a href="${checkoutUrl}" style="
               display: inline-block;
@@ -100,7 +107,7 @@ async function sendOrderRecoveryEmail({ customerName, customerEmail, plan, price
 
       </body>
       </html>
-    `
+    `,
   });
 
   if (error) throw new Error(`Error enviando email de recovery: ${error.message}`);
@@ -109,7 +116,8 @@ async function sendOrderRecoveryEmail({ customerName, customerEmail, plan, price
 }
 
 // ── Email de confirmación de pago
-// Se envía cuando MP confirma el pago via webhook
+// Se envía cuando MP confirma el pago via webhook.
+// Es el único email que confirma que el trabajo va a empezar.
 async function sendConfirmationEmail({ customerName, customerEmail, plan, price, orderId }) {
 
   const { data, error } = await resend.emails.send({
@@ -127,17 +135,17 @@ async function sendConfirmationEmail({ customerName, customerEmail, plan, price,
       <body style="margin: 0; padding: 0; background-color: #FFFFFF;">
 
         <div style="font-family: Georgia, serif; max-width: 560px; margin: 0 auto; padding: 40px 20px; color: #1A1A1A;">
-          
+
           <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 8px;">
             KYNEXA <span style="font-weight: 300; font-size: 16px; letter-spacing: 4px;">STUDIO</span>
           </h1>
-          
+
           <hr style="border: none; border-top: 1px solid #E8E8E8; margin: 24px 0;">
-          
+
           <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 8px;">
             Build iniciado, ${customerName}.
           </h2>
-          
+
           <p style="font-size: 15px; color: #555; line-height: 1.7; margin-bottom: 32px;">
             Recibimos tu pago correctamente. Tu identidad digital está en construcción.
             Te contactaremos en las próximas 24hs con el acceso a tu portfolio.
@@ -148,7 +156,7 @@ async function sendConfirmationEmail({ customerName, customerEmail, plan, price,
             <table style="width: 100%; font-size: 14px;">
               <tr>
                 <td style="color: #999; padding: 6px 0;">Plan</td>
-                <td style="text-align: right; font-weight: 600;">${PLAN_LABELS[plan]}</td>
+                <td style="text-align: right; font-weight: 600;">${PLAN_LABELS[plan] ?? plan}</td>
               </tr>
               <tr>
                 <td style="color: #999; padding: 6px 0;">Total abonado</td>
@@ -166,7 +174,7 @@ async function sendConfirmationEmail({ customerName, customerEmail, plan, price,
           </p>
 
           <hr style="border: none; border-top: 1px solid #E8E8E8; margin: 32px 0;">
-          
+
           <p style="font-size: 11px; color: #CCC; letter-spacing: 2px; text-transform: uppercase;">
             KYNEXA Studio — Identidades digitales para profesionales
           </p>
@@ -175,10 +183,10 @@ async function sendConfirmationEmail({ customerName, customerEmail, plan, price,
 
       </body>
       </html>
-    `
+    `,
   });
 
-  if (error) throw new Error(`Error enviando email: ${error.message}`);
+  if (error) throw new Error(`Error enviando email de confirmación: ${error.message}`);
 
   return data;
 }
