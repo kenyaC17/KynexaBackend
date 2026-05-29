@@ -2,9 +2,10 @@
 // KYNEXA BACKEND — src/controllers/orderController.js
 // ═══════════════════════════════════════
 
-const { findOrCreateCustomer } = require('../services/customerService');
-const { createOrder, getOrderById } = require('../services/orderService');
+const { findOrCreateCustomer }              = require('../services/customerService');
+const { createOrder, getOrderById }         = require('../services/orderService');
 const { saveFile, getUploadUrl, registerFile } = require('../services/fileService');
+const { sendOrderRecoveryEmail }            = require('../services/emailService');
 
 // POST /api/orders
 async function createOrderHandler(req, res) {
@@ -73,6 +74,16 @@ async function createOrderHandler(req, res) {
         );
       }
     }
+
+    // Envía email de recovery con link para completar el pago
+    // No bloqueamos la respuesta si el email falla
+    sendOrderRecoveryEmail({
+      customerName:  userData.name,
+      customerEmail: userData.email,
+      plan,
+      price:         planPrice,
+      orderId:       order.id,
+    }).catch(err => console.error('[orderController] Error enviando recovery email:', err.message));
 
     return res.status(201).json({
       success: true,
