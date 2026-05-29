@@ -1,13 +1,18 @@
 // ═══════════════════════════════════════
 // KYNEXA BACKEND — src/controllers/orderController.js
+// Maneja creación de pedidos, consulta por ID
+// y generación de URLs firmadas para upload.
 // ═══════════════════════════════════════
 
-const { findOrCreateCustomer }              = require('../services/customerService');
-const { createOrder, getOrderById }         = require('../services/orderService');
+const { findOrCreateCustomer }                = require('../services/customerService');
+const { createOrder, getOrderById }           = require('../services/orderService');
 const { saveFile, getUploadUrl, registerFile } = require('../services/fileService');
-const { sendOrderRecoveryEmail }            = require('../services/emailService');
+const { sendOrderRecoveryEmail }              = require('../services/emailService');
 
 // POST /api/orders
+// Crea un cliente si no existe y registra el pedido draft.
+// La validación de datos ya fue hecha por validateOrder middleware.
+// El email de recovery se envía sin bloquear la respuesta.
 async function createOrderHandler(req, res) {
   try {
     const {
@@ -17,34 +22,32 @@ async function createOrderHandler(req, res) {
       palette,
       style,
       fonts,
-      files
+      files,
     } = req.body;
 
-    if (!userData?.email || !userData?.name || !plan || !planPrice) {
-      return res.status(400).json({ 
-        error: 'Faltan datos requeridos: email, nombre, plan y precio son obligatorios' 
-      });
-    }
-
+    // Busca o crea el cliente por email
     const customer = await findOrCreateCustomer({
       name:     userData.name,
       email:    userData.email,
-      role:     userData.role,
-      github:   userData.github,
-      linkedin: userData.linkedin
+      role:     userData.role     || null,
+      github:   userData.github   || null,
+      linkedin: userData.linkedin || null,
     });
 
+    // Crea el pedido draft — idempotente en ventana de 10 minutos
     const order = await createOrder({
       customerId: customer.id,
       plan,
       price: planPrice,
       palette,
       style,
-      fonts
+      fonts,
     });
 
-    // Guarda archivos si vienen con dataURL (fallback)
+    // Procesa archivos si vienen en el body (flujo fallback con dataURL)
     if (files && files.length > 0) {
+
+      // Archivos con dataURL — subida desde el backend (fallback)
       const filesWithDataURL = files.filter(f => f.dataURL);
       if (filesWithDataURL.length > 0) {
         await Promise.all(
@@ -54,12 +57,12 @@ async function createOrderHandler(req, res) {
             fileName: file.name,
             fileType: file.type,
             fileSize: file.size,
-            dataURL:  file.dataURL
+            dataURL:  file.dataURL,
           }))
         );
       }
 
-      // Registra archivos que ya fueron subidos directamente por el frontend
+      // Archivos ya subidos directamente por el frontend — solo registrar en BD
       const filesWithPath = files.filter(f => f.filePath && !f.dataURL);
       if (filesWithPath.length > 0) {
         await Promise.all(
@@ -69,36 +72,38 @@ async function createOrderHandler(req, res) {
             fileName: file.name,
             fileType: file.type,
             fileSize: file.size,
-            filePath: file.filePath
+            filePath: file.filePath,
           }))
         );
       }
     }
 
-    // Envía email de recovery con link para completar el pago
-    // No bloqueamos la respuesta si el email falla
+    // Envía email de recovery — no bloquea la respuesta si falla
     sendOrderRecoveryEmail({
       customerName:  userData.name,
       customerEmail: userData.email,
       plan,
       price:         planPrice,
       orderId:       order.id,
-    }).catch(err => console.error('[orderController] Error enviando recovery email:', err.message));
+    }).catch(err => {
+      console.error('[orderController] Error enviando recovery email:', err.message);
+    });
 
     return res.status(201).json({
       success: true,
       orderId: order.id,
-      message: 'Pedido creado correctamente'
+      message: 'Pedido creado correctamente',
     });
 
   } catch (error) {
-    console.error('[orderController] Error:', error.message);
+    console.error('[orderController] createOrderHandler:', error.message);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }
 
 // POST /api/orders/upload-url
-// Genera una URL firmada para que el frontend suba directamente a Supabase Storage
+// Genera una URL firmada para que el frontend suba directamente a Supabase Storage.
+// Evita pasar el archivo por el backend — más rápido y sin cuello de botella.
 async function getUploadUrlHandler(req, res) {
   try {
     const { orderId, slotId, fileName, fileType, fileSize } = req.body;
@@ -117,25 +122,35 @@ async function getUploadUrlHandler(req, res) {
     });
 
   } catch (error) {
-    console.error('[orderController] Error generando URL:', error.message);
+    console.error('[orderController] getUploadUrlHandler:', error.message);
     return res.status(500).json({ error: error.message });
   }
 }
 
 // GET /api/orders/:id
+// Devuelve el pedido completo con customer, payments y archivos.
+// Usado por step5Confirm para polling de estado post-pago.
+// IMPORTANTE: devuelve el objeto order directamente — no anidado en { order }
+// porque step5Confirm.js accede a order.status directamente.
 async function getOrderHandler(req, res) {
   try {
     const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'ID de pedido requerido' });
+    }
+
     const order = await getOrderById(id);
 
     if (!order) {
       return res.status(404).json({ error: 'Pedido no encontrado' });
     }
 
-    return res.status(200).json({ success: true, order });
+    // Devuelve el order directamente — step5Confirm hace order.status
+    return res.status(200).json(order);
 
   } catch (error) {
-    console.error('[orderController] Error:', error.message);
+    console.error('[orderController] getOrderHandler:', error.message);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }
