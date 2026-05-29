@@ -6,13 +6,12 @@
 
 const supabase = require('../db/supabase');
 
-// Crea un nuevo pedido en la BD
-// Recibe el id del cliente y los datos del builder
+// ── Crea un pedido draft en la BD.
 // Idempotente — si ya existe un pedido pending del mismo cliente
-// con el mismo plan en los últimos 10 minutos, lo devuelve en lugar de crear uno nuevo
+// con el mismo plan en los últimos 10 minutos, lo devuelve sin crear uno nuevo.
 async function createOrder({ customerId, plan, price, palette, style, fonts }) {
 
-  // Verifica si ya existe un pedido reciente pending para evitar duplicados
+  // Ventana de idempotencia — evita duplicados por doble click o retry del frontend
   const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
   const { data: existing } = await supabase
@@ -26,7 +25,6 @@ async function createOrder({ customerId, plan, price, palette, style, fonts }) {
 
   if (existing) return existing;
 
-  // Si no existe, crea el pedido
   const { data, error } = await supabase
     .from('orders')
     .insert([{
@@ -36,7 +34,7 @@ async function createOrder({ customerId, plan, price, palette, style, fonts }) {
       palette,
       style,
       fonts,
-      status: 'pending'
+      status: 'pending',
     }])
     .select()
     .single();
@@ -46,16 +44,14 @@ async function createOrder({ customerId, plan, price, palette, style, fonts }) {
   return data;
 }
 
-// Actualiza el estado de un pedido
-// Se usa cuando MP confirma el pago
+// ── Actualiza el estado de un pedido.
+// Se usa cuando MP confirma el pago via webhook.
+// updated_at es manejado automáticamente por Supabase — no se envía desde el código.
 async function updateOrderStatus(orderId, status) {
 
   const { data, error } = await supabase
     .from('orders')
-    .update({ 
-      status,
-      updated_at: new Date().toISOString()
-    })
+    .update({ status })
     .eq('id', orderId)
     .select()
     .single();
@@ -65,7 +61,8 @@ async function updateOrderStatus(orderId, status) {
   return data;
 }
 
-// Busca un pedido por ID
+// ── Busca un pedido por ID con todos sus datos relacionados.
+// Incluye customer, payments y archivos — usado por el webhook y el polling de step5.
 async function getOrderById(orderId) {
 
   const { data, error } = await supabase
