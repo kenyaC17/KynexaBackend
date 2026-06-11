@@ -49,14 +49,27 @@ async function createPaymentPreference({ orderId, plan, price, customerEmail, cu
   return result;
 }
 
-// Registra el pago en la BD
+// Registra el pago en la BD — idempotente
+// Si el mpPaymentId ya existe, devuelve el registro existente sin duplicar
 async function savePayment({ orderId, mpPaymentId, amount, status }) {
+
+  // Verificamos si ya procesamos este pago — MP puede reintentar el webhook
+  const { data: existing } = await supabase
+    .from('payments')
+    .select('id')
+    .eq('mp_payment_id', mpPaymentId)
+    .maybeSingle();
+
+  if (existing) {
+    console.log(`[savePayment] Pago ${mpPaymentId} ya registrado — ignorando duplicado`);
+    return existing;
+  }
 
   const { data, error } = await supabase
     .from('payments')
     .insert([{
       order_id:      orderId,
-      mp_payment_id: mpPaymentId, // ← ID del pago de Mercado Pago
+      mp_payment_id: mpPaymentId,
       amount,
       status
     }])
