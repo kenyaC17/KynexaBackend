@@ -28,9 +28,11 @@ function validateWebhookSignature(req) {
   const signature = req.headers['x-signature'];
   const requestId = req.headers['x-request-id'];
 
-  // Sin secret configurado en Railway — salteamos validación (no recomendado en prod)
-  if (!secret) return true;
-
+  // Secret configurado para evitar ataques en el webhooks
+  if (!secret) {
+  console.error('[FATAL] MP_WEBHOOK_SECRET no está configurado — rechazando webhook');
+  return false;
+  }
   // Sin firma en el header — rechazamos
   if (!signature) return false;
 
