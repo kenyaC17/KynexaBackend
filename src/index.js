@@ -35,7 +35,6 @@ const generalLimiter = rateLimit({
 const allowedOrigins = [
   'https://kynexa.studio',
   'https://www.kynexa.studio',
-  'http://localhost:5173',
 ];
 
 // ── Middlewares de seguridad
