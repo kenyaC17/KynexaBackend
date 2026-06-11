@@ -112,6 +112,18 @@ async function getUploadUrlHandler(req, res) {
       return res.status(400).json({ error: 'Faltan datos del archivo' });
     }
 
+    // Validación de tipo — solo imágenes y PDF permitidos
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!ALLOWED_TYPES.includes(fileType)) {
+      return res.status(400).json({ error: 'Tipo de archivo no permitido' });
+    }
+
+    // Validación de tamaño — máximo 5MB
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (fileSize > MAX_SIZE) {
+      return res.status(400).json({ error: 'El archivo supera el límite de 10MB' });
+    }
+
     const result = await getUploadUrl({ orderId, slotId, fileName, fileType, fileSize });
 
     return res.status(200).json({
