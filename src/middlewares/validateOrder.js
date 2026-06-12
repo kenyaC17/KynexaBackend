@@ -21,9 +21,43 @@ const VALID_PLANS = Object.keys(PLAN_PRICES);
 // ── Regex de validación de email — definido una vez, no en cada request
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// ── Valida el token de sesión, los datos del usuario y el pedido.
+// ── Verifica el token de Turnstile contra la API de Cloudflare
+// Devuelve true si el challenge fue resuelto por un humano
+async function verifyTurnstileToken(token, remoteIp) {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+
+  if (!secret) {
+    console.error('[FATAL] TURNSTILE_SECRET_KEY no está configurado — rechazando');
+    return false;
+  }
+
+  if (!token) return false;
+
+  try {
+    const body = new URLSearchParams({
+      secret,
+      response: token,
+    });
+    if (remoteIp) body.append('remoteip', remoteIp);
+
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+
+    const data = await res.json();
+    return data.success === true;
+
+  } catch (err) {
+    console.error('[verifyTurnstileToken] Error verificando con Cloudflare:', err.message);
+    return false;
+  }
+}
+
+// ── Valida el token de sesión, el captcha, los datos del usuario y el pedido.
 // Si algo falla devuelve 400 o 403 antes de llegar al controller.
-function validateOrder(req, res, next) {
+async function validateOrder(req, res, next) {
 
   // Valida token de sesión — protege contra bots y requests automatizados
   // El token es un hex de 64 caracteres generado por el frontend al iniciar el builder
@@ -32,7 +66,13 @@ function validateOrder(req, res, next) {
     return res.status(403).json({ error: 'Token de sesión inválido' });
   }
 
-  const { userData, plan, planPrice } = req.body;
+  const { userData, plan, planPrice, turnstileToken } = req.body;
+
+  // Valida el CAPTCHA — protege contra bots que generan órdenes masivas
+  const captchaOk = await verifyTurnstileToken(turnstileToken, req.ip);
+  if (!captchaOk) {
+    return res.status(403).json({ error: 'Verificación de seguridad fallida' });
+  }
 
   // Valida existencia de userData
   if (!userData) {
