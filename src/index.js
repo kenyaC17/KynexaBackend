@@ -3,17 +3,18 @@
 // Entry point del servidor Express.
 // Configura middlewares de seguridad,
 // rate limiting, CORS y rutas.
-// Inicia el job de limpieza de Storage.
 // ═══════════════════════════════════════
+
+require('dotenv').config();
 
 const express   = require('express');
 const cors      = require('cors');
 const helmet    = require('helmet');
 const rateLimit = require('express-rate-limit');
 
-const orderRoutes          = require('./routes/orderRoutes');
-const paymentRoutes        = require('./routes/paymentRoutes');
-const { startCleanupJob }  = require('./jobs/cleanupStorage');
+const guiaRoutes    = require('./routes/guiaRoutes');
+const horarioRoutes = require('./routes/horarioRoutes');
+const reservaRoutes = require('./routes/reservaRoutes');
 
 const app = express();
 
@@ -65,16 +66,14 @@ app.get('/health', (req, res) => {
 });
 
 // ── Rutas
-// orderLimiter vive en orderRoutes.js y se aplica solo a POST /
-app.use('/api/orders',   orderRoutes);
-app.use('/api/payments', paymentRoutes);
+// guiaLimiter y reservaLimiter viven en sus propios routers,
+// aplicados solo a las rutas que crean datos (no a las de lectura)
+app.use('/api/guia',     guiaRoutes);
+app.use('/api/horarios', horarioRoutes);
+app.use('/api/reservas', reservaRoutes);
 
 // ── Inicia el servidor solo si este archivo es el entry point
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT);
-
-  // Inicia el job de limpieza de archivos huérfanos
-  // Se ejecuta al arrancar y luego cada hora
-  startCleanupJob();
 }
