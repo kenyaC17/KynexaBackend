@@ -51,10 +51,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Token'],
 }));
 
-// ── Límite de 100kb para el body JSON
-// El backend no recibe archivos — van directo a Supabase Storage
-// Un payload mayor es señal de intento de ataque
-app.use(express.json({ limit: '100kb' }));
+// ── El parseo de JSON se aplica por ruta, no acá de forma
+// global — así la ruta de subida de CV puede tener un límite
+// más grande sin aflojar el límite chico del resto (ver
+// guiaRoutes.js y reservaRoutes.js).
 
 // ── Ruta de salud — usada por Railway para health checks
 app.get('/health', (req, res) => {

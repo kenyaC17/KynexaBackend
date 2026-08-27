@@ -1,12 +1,12 @@
 // ═══════════════════════════════════════
 // KYNEXA BACKEND — src/controllers/reservaController.js
 // POST /api/reservas
-// POST /api/reservas/upload-cv-url
+// POST /api/reservas/upload-cv
 // ═══════════════════════════════════════
 
 const { createReserva }              = require('../services/reservaService');
 const { getHorarioById }             = require('../services/horarioService');
-const { getCvUploadUrl }             = require('../services/fileService');
+const { uploadCvToStorage }          = require('../services/fileService');
 const { sendReservaConfirmationEmail, sendReservaAlertEmail } = require('../services/emailService');
 const { withRetry } = require('../utils/retry');
 
@@ -59,22 +59,23 @@ async function createReservaHandler(req, res) {
   }
 }
 
-// ── Genera la URL firmada para subir el CV antes de reservar
-async function getCvUploadUrlHandler(req, res) {
+// ── Recibe el CV (en base64) y lo sube al Storage desde acá,
+// con la service_role — el navegador nunca toca Supabase directo.
+async function uploadCvHandler(req, res) {
   try {
-    const { fileName, fileType, fileSize } = req.body;
+    const { fileName, fileType, fileContentBase64 } = req.body;
 
-    if (!fileName || !fileType || !fileSize) {
+    if (!fileName || !fileType || !fileContentBase64) {
       return res.status(400).json({ error: 'Faltan datos del archivo' });
     }
 
-    const resultado = await getCvUploadUrl({ fileName, fileType, fileSize });
-    res.status(200).json(resultado);
+    const filePath = await uploadCvToStorage({ fileContentBase64, fileName, fileType });
+    res.status(200).json({ filePath });
 
   } catch (err) {
-    console.error('[reservaController] Error generando URL de subida:', err.message);
+    console.error('[reservaController] Error subiendo el CV:', err.message);
     res.status(400).json({ error: err.message });
   }
 }
 
-module.exports = { createReservaHandler, getCvUploadUrlHandler };
+module.exports = { createReservaHandler, uploadCvHandler };

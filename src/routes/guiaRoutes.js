@@ -18,6 +18,6 @@ const guiaLimiter = rateLimit({
 });
 
 // POST /api/guia — pide la guía gratuita
-router.post('/', guiaLimiter, validateGuia, guiaHandler);
+router.post('/', guiaLimiter, express.json({ limit: '100kb' }), validateGuia, guiaHandler);
 
 module.exports = router;
