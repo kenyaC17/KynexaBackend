@@ -87,7 +87,7 @@ async function sendGuiaEmail({ nombre, email }) {
     const pdfBuffer = fs.readFileSync(GUIA_PDF_PATH);
     attachments = [{
       filename: 'guia-kynexa-entrevistas-y-plataformas.pdf',
-      content:  pdfBuffer.toString('base64'),
+      content:  pdfBuffer,
     }];
   } catch (err) {
     // Si el PDF todavía no está subido al repo, el mail sale igual
