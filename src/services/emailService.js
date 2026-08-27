@@ -63,11 +63,11 @@ async function sendGuiaEmail({ nombre, email }) {
 
   const html = wrapperEmail(`
     <h1 style="font-size:22px; font-weight:700; margin-bottom:12px;">
-      Acá tenés tu guía, ${nombre}.
+      ¿Por qué no te están encontrando?
     </h1>
     <p style="font-size:15px; line-height:1.7; color:${ESTILOS.muted}; margin-bottom:24px;">
-      Te la dejo adjunta en este mismo mail — entrevistas y plataformas para postularte,
-      pensada para que sepas por dónde arrancar.
+      Hola ${nombre}, acá tenés la guía adjunta — para entender qué puede estar
+      frenando tu búsqueda profesional, antes de tocar una sola línea de tu CV.
     </p>
     <p style="font-size:15px; line-height:1.7; color:${ESTILOS.muted}; margin-bottom:32px;">
       Si después de leerla querés charlar sobre tu caso puntual, la consulta
@@ -98,7 +98,7 @@ async function sendGuiaEmail({ nombre, email }) {
   const { data, error } = await resend.emails.send({
     from:        'KYNEXA <noreply@kynexa.studio>',
     to:          email,
-    subject:     'Tu guía de KYNEXA — entrevistas y plataformas',
+    subject:     '¿Por qué no te están encontrando? — Tu guía de KYNEXA',
     html,
     attachments,
   });
