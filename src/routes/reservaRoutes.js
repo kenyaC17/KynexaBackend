@@ -9,10 +9,13 @@ const router = express.Router();
 const validateReserva = require('../middlewares/validateReserva');
 const { createReservaHandler, uploadCvHandler } = require('../controllers/reservaController');
 
-// Máximo 8 reservas por IP cada 15 minutos
+// Máximo 3 reservas por IP cada 60 minutos — a propósito más
+// estricto que un simple anti-spam: el objetivo puntual es que
+// una sola persona no pueda acaparar varios turnos disponibles
+// (además de la protección por email en reservaService.js).
 const reservaLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 8,
+  windowMs: 60 * 60 * 1000,
+  max: 3,
   message: { error: 'Demasiados intentos — probá de nuevo en un rato' },
 });
 

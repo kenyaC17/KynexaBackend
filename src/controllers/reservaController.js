@@ -26,6 +26,9 @@ async function createReservaHandler(req, res) {
       if (err.horarioOcupado) {
         return res.status(409).json({ error: err.message });
       }
+      if (err.turnoExistente) {
+        return res.status(409).json({ error: err.message });
+      }
       throw err;
     }
 
