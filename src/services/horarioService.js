@@ -8,10 +8,16 @@
 
 const supabase = require('../db/supabase');
 
-// ── Lista los turnos futuros que todavía no fueron reservados
+// ── Lista los turnos futuros que todavía no fueron reservados,
+// acotado a los próximos 30 días — evita traer de más si se
+// cargan meses de horarios de una sola vez.
 async function listAvailableHorarios() {
 
   const hoy = new Date().toISOString().split('T')[0];
+
+  const limiteFecha = new Date();
+  limiteFecha.setDate(limiteFecha.getDate() + 30);
+  const limite = limiteFecha.toISOString().split('T')[0];
 
   // Primero, los ids de turnos ya reservados
   const { data: reservados, error: reservadosError } = await supabase
@@ -26,6 +32,7 @@ async function listAvailableHorarios() {
     .from('horarios_disponibles')
     .select('id, fecha, hora')
     .gte('fecha', hoy)
+    .lte('fecha', limite)
     .order('fecha', { ascending: true })
     .order('hora', { ascending: true });
 
